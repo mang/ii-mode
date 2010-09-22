@@ -84,6 +84,7 @@ until the next insertation onto history-ring")
         '("^[0-9]+++-[0-9]+-[0-9]+\\ [0-9]+:[0-9]+\\ \<.+\>.*" 0 'default t)
         '("^[0-9]+++-[0-9]+-[0-9]+\\ [0-9]+:[0-9]+\\ \<.*?\>" 0 'ii-face-nick t)
         '("\\(\\.\\|_\\|-\\|\\w\\)+@\\(\\.\\|_\\|-\\|\\w\\)+\\.\\w\\w+" 0 'ii-face-mail t)
+        '("\\(http://\\|ftp://\\|www.\\).[^ (> )]*" 0 'ii-face-link t)
         '("^[0-9]+++-[0-9]+-[0-9]+\\ [0-9]+:[0-9]+" 0 'ii-face-time t)
         '("^[0-9]+++-[0-9]+-[0-9]+" 0 'ii-face-date t)
         '("\C-b.*?\C-b" 0 'bold prepend)
@@ -122,15 +123,15 @@ until the next insertation onto history-ring")
     (when namesfile
       (split-string
        (with-temp-buffer     
-	 (insert-file namesfile)
-	 (buffer-string))
-       "\n" t))))
+         (insert-file namesfile)
+       (buffer-string))
+      "\n" t))))
 
 (defun ii-set-channel-data (channel key value)
   "Sets data for channel"
   (assert (symbolp key))
   (let ((channel-data (or (gethash channel ii-channel-data)
-			  (puthash channel (make-hash-table) ii-channel-data))))
+                          (puthash channel (make-hash-table) ii-channel-data))))
     (puthash key value channel-data)))
 
 (defun ii-get-channel-data (channel key)
@@ -147,15 +148,15 @@ until the next insertation onto history-ring")
 (defun ii-visit-file-among (list)
   "Takes a list of channel filenames and selects one to visit."
   (ii-open-file-buffer (ii-longname
-			(ido-completing-read 
-			 "find: " (mapcar 'ii-shortname list) nil t))))
+                        (ido-completing-read 
+                         "find: " (mapcar 'ii-shortname list) nil t))))
 
 (defun ii-visit-server-file ()
   "Selects among server channel files"
   (interactive)
   (ii-visit-file-among
    (remove-if-not (lambda (x) (string-match (concat "^" ii-irc-directory "[^/]*/out$") x))
-		  (ii-get-channels))))
+                  (ii-get-channels))))
 
 (defun ii-visit-channel-file ()
   "Selects among all channel files"
@@ -169,10 +170,10 @@ until the next insertation onto history-ring")
 (defun ii-setup-maybe ()
   "If not already running, start the process and setup buffer sizes."
   (unless (and ii-inotify-process
-	       (= (process-exit-status ii-inotify-process) 0))
+               (= (process-exit-status ii-inotify-process) 0))
     (ii-cache-channel-sizes)
     (setf ii-inotify-process
-	  (start-process "ii-inotify" nil "inotifywait" "-mr" ii-irc-directory))
+          (start-process "ii-inotify" nil "inotifywait" "-mr" ii-irc-directory))
     (set-process-filter ii-inotify-process 'ii-inotify-filter)))
 
 (defun ii-inotify-filter (process output)
@@ -191,49 +192,49 @@ until the next insertation onto history-ring")
   (when (and window (window-live-p window))
     (let ((resize-mini-windows nil))
       (save-selected-window
-	(select-window window)
-	(save-restriction
-	  (with-current-buffer (window-buffer window)
-	    (widen)
-	    (when (< (1- ii-prompt-marker) (point))
-	      (save-excursion
-		(recenter -1)
-		(sit-for 0)))))))))
+        (select-window window)
+        (save-restriction
+          (with-current-buffer (window-buffer window)
+            (widen)
+            (when (< (1- ii-prompt-marker) (point))
+              (save-excursion
+                (recenter -1)
+                (sit-for 0)))))))))
 
 (defun ii-handle-file-update (file)
   "Called when a channel file is written to."
   (let ((delta      (get-file-delta file))
-  	(buffer (ii-buffer-open-p file)))
+        (buffer (ii-buffer-open-p file)))
     (when delta
       (when buffer
-	;; Affected file is being changed and visited
-	(with-current-buffer buffer
-	  (let* ((point-past-prompt (< (1- ii-prompt-marker) (point)))
-		 (point-from-end (- (point-max) (point)))
-		 (inhibit-read-only t))	    
-	    (save-excursion
-	      (goto-char ii-prompt-marker)
-	      (insert-before-markers (propertize delta 'read-only t)))
-	    (when point-past-prompt
-	      (goto-char (- (point-max) point-from-end))))))
+        ;; Affected file is being changed and visited
+        (with-current-buffer buffer
+          (let* ((point-past-prompt (< (1- ii-prompt-marker) (point)))
+                 (point-from-end (- (point-max) (point)))
+                 (inhibit-read-only t))	    
+            (save-excursion
+              (goto-char ii-prompt-marker)
+              (insert-before-markers (propertize delta 'read-only t)))
+            (when point-past-prompt
+              (goto-char (- (point-max) point-from-end))))))
       (when (and (or (not buffer)                      ; either no buffer or
-		     (not (get-buffer-window buffer))) ; buffer currently not visible
-		 (or (ii-query-file-p file)         ; Either a personal query,
-		     (ii-contains-regexp delta)         ; or containing looked-for regexp
-		     (ii-special-channel file)))    ; or special channel
-	(ii-notify file)))))
+                     (not (get-buffer-window buffer))) ; buffer currently not visible
+                 (or (ii-query-file-p file)         ; Either a personal query,
+                     (ii-contains-regexp delta)         ; or containing looked-for regexp
+                     (ii-special-channel file)))    ; or special channel
+        (ii-notify file)))))
 
 (defun get-file-delta (file)
   "Gets the end of the file that has grown."
   (let ((old-size (or (ii-get-channel-data file 'size) 0))
-  	(new-size (ii-filesize file)))
+        (new-size (ii-filesize file)))
     ;; update old value
     (unless (= old-size new-size)
       (ii-set-channel-data file 'size new-size)
       (with-temp-buffer
-	(save-excursion
-	  (insert-file-contents file nil old-size new-size)
-	  (buffer-string))))))
+        (save-excursion
+          (insert-file-contents file nil old-size new-size)
+          (buffer-string))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mode
@@ -243,15 +244,15 @@ until the next insertation onto history-ring")
 
 (defvar ii-mode-map nil)
 (setq ii-mode-map (let ((map (make-sparse-keymap)))
-		    (define-key map [remap end-of-buffer] 'ii-scroll-to-bottom)
-		    (define-key map (kbd "C-a")    'ii-beginning-of-line)
-		    (define-key map (kbd "TAB")    'completion-at-point)
-		    (define-key map (kbd "M-p")    'ii-history-prev)
- 		    (define-key map (kbd "<up>")   'ii-history-prev)
-		    (define-key map (kbd "M-n")    'ii-history-next)
- 		    (define-key map (kbd "<down>") 'ii-history-next)
-		    (define-key map (kbd "RET")    'ii-send-message)
-		    map))
+                    (define-key map [remap end-of-buffer] 'ii-scroll-to-bottom)
+                    (define-key map (kbd "C-a")    'ii-beginning-of-line)
+                    (define-key map (kbd "TAB")    'completion-at-point)
+                    (define-key map (kbd "M-p")    'ii-history-prev)
+                    (define-key map (kbd "<up>")   'ii-history-prev)
+                    (define-key map (kbd "M-n")    'ii-history-next)
+                    (define-key map (kbd "<down>") 'ii-history-next)
+                    (define-key map (kbd "RET")    'ii-send-message)
+                    map))
 
 (defun ii-mode-init ()
   (use-local-map ii-mode-map)
@@ -301,11 +302,11 @@ until the next insertation onto history-ring")
 
 (defun ii-completion-at-point ()
   (list (save-excursion
-	  (search-backward-regexp "\\s-")
-	  (forward-char)
-	  (point))
-	(point)
-	(ii-get-names)))
+          (search-backward-regexp "\\s-")
+          (forward-char)
+          (point))
+        (point)
+        (ii-get-names)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; movement
@@ -393,7 +394,7 @@ BEG and END should be the beginnig and ending point of prompt"
 (defun ii-clear-and-return-prompt ()
   "Returns the content of prompt while clearing it."
   (let* ((start-pos (+ ii-prompt-marker (length ii-prompt-text)))
-	 (text (buffer-substring start-pos (point-max))))
+         (text (buffer-substring start-pos (point-max))))
     (delete-region start-pos (point-max))
     text))
 
@@ -422,7 +423,7 @@ BEG and END should be the beginnig and ending point of prompt"
   "Removes notification on current buffer if any."
   (when (member ii-buffer-logfile ii-notifications)
     (setf ii-notifications
-	  (remove ii-buffer-logfile ii-notifications)))
+          (remove ii-buffer-logfile ii-notifications)))
   (when (null ii-notifications) 
     (setf global-mode-string "")))
 
@@ -437,11 +438,11 @@ BEG and END should be the beginnig and ending point of prompt"
 (defun ii-get-channel-buffer (file)
   (or (ii-buffer-open-p file)      
       (let ((buffer (get-buffer-create (ii-channel-name file))))
-	(with-current-buffer buffer
-	  (setf ii-buffer-logfile file)
-	  (ii-mode)
-	  (ii-set-channel-data file 'buffer buffer))
-	buffer)))
+        (with-current-buffer buffer
+          (setf ii-buffer-logfile file)
+          (ii-mode)
+          (ii-set-channel-data file 'buffer buffer))
+        buffer)))
 
 (defun ii-open-file-buffer (file)
   (switch-to-buffer (ii-get-channel-buffer file)))
@@ -449,28 +450,28 @@ BEG and END should be the beginnig and ending point of prompt"
 (defun ii-insert-history-chunk ()
   "inserts an additional chunk of history into buffer, keeps track of its state through buffer-local variables"
   (let* ((inhibit-read-only t)
-	 (file              ii-buffer-logfile)
-	 (size              (ii-filesize file))
-	 (end-offset        (1+ (or ii-backlog-offset size)))
-	 (start-offset      (max (- end-offset ii-chunk-size) 0)))
+         (file              ii-buffer-logfile)
+         (size              (ii-filesize file))
+         (end-offset        (1+ (or ii-backlog-offset size)))
+         (start-offset      (max (- end-offset ii-chunk-size) 0)))
     (unless (= end-offset 0)
       (save-excursion
-	(goto-char (point-min))
-	(save-excursion
-	  (insert-before-markers (or ii-topline-buffer "")))
-	(goto-char (point-min))
-	(save-excursion
-	  (insert-before-markers
-	   (with-temp-buffer
-	     (insert-file-contents file nil start-offset end-offset)
-	     (buffer-string))))
-	(unless (= start-offset 0)
-	  ;; unless the whole file is read, delete and buffer the first line
-	  (save-excursion
-	    (goto-char (point-min))
-	    (setf ii-topline-buffer (substring (buffer-string) (point) (line-end-position)))
-	    (delete-region (point) (1+ (line-end-position)))))
-	(setf ii-backlog-offset start-offset)))))
+        (goto-char (point-min))
+        (save-excursion
+          (insert-before-markers (or ii-topline-buffer "")))
+        (goto-char (point-min))
+        (save-excursion
+          (insert-before-markers
+           (with-temp-buffer
+             (insert-file-contents file nil start-offset end-offset)
+             (buffer-string))))
+        (unless (= start-offset 0)
+          ;; unless the whole file is read, delete and buffer the first line
+          (save-excursion
+            (goto-char (point-min))
+            (setf ii-topline-buffer (substring (buffer-string) (point) (line-end-position)))
+            (delete-region (point) (1+ (line-end-position)))))
+        (setf ii-backlog-offset start-offset)))))
 
 (defun ii-isearch-autogrow ()
   (unless isearch-forward
